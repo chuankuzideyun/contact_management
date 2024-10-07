@@ -3,7 +3,7 @@ const Contact = require("../models/contactsModel");
 
 //Get all contacts
 const getContacts = asyncHandler(async(req,res)=>{
-    const contacts = await Contact.find();
+    const contacts = await Contact.find({user_id: req.user.id});
     res.status(200).json(contacts);
 });
 
@@ -19,6 +19,7 @@ const createContact = asyncHandler(async(req,res)=>{
         name,
         email,
         phone,
+        user_id: req.user.id,
     });
     res.status(200).json(contact);
 });
@@ -40,6 +41,11 @@ const updateContact = asyncHandler(async(req,res)=>{
         res.status(404);
         throw new Error("Contact not found");
     }
+
+    if(contact.user_id.toString()!=req.user.id){
+        res.status(403);
+        throw new ErrorEvent("User don't have permission to update other user's contacts")
+    }
     const updatedContact = await Contact.findByIdAndUpdate(
         req.params.id,
         req.body,
@@ -55,7 +61,11 @@ const deleteContact = asyncHandler(async(req,res)=>{
         res.status(404);
         throw new Error("Contact not found");
     }
-    await Contact.remove();
+    if(contact.user_id.toString()!=req.user.id){
+        res.status(403);
+        throw new ErrorEvent("User don't have permission to update other user's contacts")
+    }
+    await Contact.deleteOne({_id:req.params.id});
     res.status(200).json(contact);
 });
 module.exports = {getContacts,getContact,createContact,updateContact,deleteContact};
